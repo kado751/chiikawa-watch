@@ -1,0 +1,30 @@
+name: ちいかわベーカリー空き枠チェック
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"  # 15分おき（GitHub側の混雑で遅れることあり）
+  workflow_dispatch:         # 手動実行ボタン
+
+permissions:
+  contents: write
+
+concurrency:
+  group: watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: 空き枠をチェック
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python3 watch.py
+      - name: 状態を保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || (git commit -m "空き状況を更新" && git push)
